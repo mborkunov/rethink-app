@@ -127,7 +127,33 @@ class Config private constructor(builder: Builder) {
      *
      * @return the `Config` represented as a series of "key=value" lines
      */
-    suspend fun toWgUserspaceString(skipListenPort: Boolean = false, isAmz: Boolean = false): String {
+    /**
+     * Returns true if this configuration carries AmneziaWG (amnezia-vpn) noise parameters,
+     * i.e. any of JC / JMIN / JMAX / S1 / S2 / H1..H4 is set on the [Interface] section.
+     *
+     * AmneziaWG configs are wire-compatible with plain WireGuard: without the extra
+     * parameters the tunnel behaves as a regular WG tunnel; with them, the firestack
+     * backend applies the Amnezia "junk packet" obfuscation on the handshake.
+     */
+    fun isAmnezia(): Boolean {
+        return wgInterface?.isAmnezia() == true
+    }
+
+    /**
+     * Serializes the config for the userspace API consumed by the firestack (Go) backend.
+     *
+     * The AmneziaWG parameters (jc/jmin/jmax/s1/s2/h1..h4) are appended by
+     * [WgInterface.toWgUserspaceString] only when present, so a plain WireGuard config
+     * produces byte-identical output as before (backward compatible).
+     *
+     * @param skipListenPort do not emit listen_port (advanced / randomized-port mode)
+     * @param isAmz force the amnezia code-paths for peers; defaults to auto-detection
+     *              from the interface section ([isAmnezia])
+     */
+    suspend fun toWgUserspaceString(
+        skipListenPort: Boolean = false,
+        isAmz: Boolean = isAmnezia()
+    ): String {
         // Skip the listen port if we're in advanced mode or randomize (adv) setting is enabled.
         val sb = StringBuilder()
         sb.append(wgInterface?.toWgUserspaceString(skipListenPort).orEmpty())
