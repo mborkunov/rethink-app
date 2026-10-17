@@ -425,10 +425,16 @@ val download by configurations.creating {
 
 val firestackRepo = project.findProperty("firestackRepo")?.toString() ?: "github"
 val firestackCommit = project.findProperty("firestackCommit")?.toString() ?: "main"
+// github user/org whose firestack fork is consumed when firestackRepo == "jitpack".
+// Defaults to upstream celzero; set `firestackUser` in gradle.properties (or pass
+// -PfirestackUser=... on the command line) to build against a fork, e.g. mborkunov's
+// amnezia-go branch: com.github.mborkunov:firestack:<40-char-sha>@aar
+val firestackUser = project.findProperty("firestackUser")?.toString() ?: "celzero"
 
 fun firestackDependency(): String {
     return when (firestackRepo) {
-        "jitpack" -> "com.github.celzero:firestack:$firestackCommit@aar"
+        // jitpack coordinates are derived from the repo owner: com.github.<user>:firestack
+        "jitpack" -> "com.github.$firestackUser:firestack:$firestackCommit@aar"
         "github" -> "com.github.celzero:firestack:$firestackCommit@aar"
         "ossrh" -> "com.celzero:firestack:$firestackCommit@aar"
         else -> throw GradleException("Unknown firestackRepo: $firestackRepo")
